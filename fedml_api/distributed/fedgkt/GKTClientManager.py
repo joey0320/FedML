@@ -36,19 +36,18 @@ class GKTClientMananger(ClientManager):
         if self.round_idx == self.num_rounds - 1:
             self.finish()
 
-    def send_model_to_server(self, receive_id, extracted_feature_dict, logits_dict, labels_dict,
+    def send_model_to_server(self, receive_id, extracted_feature_dict, extracted_feature_dict_aug,
                              extracted_feature_dict_test, labels_dict_test):
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_FEATURE_AND_LOGITS, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_FEATURE, extracted_feature_dict)
-        message.add_params(MyMessage.MSG_ARG_KEY_LOGITS, logits_dict)
-        message.add_params(MyMessage.MSG_ARG_KEY_LABELS, labels_dict)
+        message.add_params(MyMessage.MSG_ARG_KEY_FEATURE_AUG, extracted_feature_dict_aug)
         message.add_params(MyMessage.MSG_ARG_KEY_FEATURE_TEST, extracted_feature_dict_test)
         message.add_params(MyMessage.MSG_ARG_KEY_LABELS_TEST, labels_dict_test)
         self.send_message(message)
 
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
-        extracted_feature_dict, logits_dict, labels_dict, extracted_feature_dict_test, labels_dict_test = self.trainer.train()
+        extracted_feature_dict, extracted_feature_dict_aug, extracted_feature_dict_test, labels_dict_test = self.trainer.train()
         logging.info("#################finish training##############################")
-        self.send_model_to_server(0, extracted_feature_dict, logits_dict, labels_dict, extracted_feature_dict_test, labels_dict_test)
+        self.send_model_to_server(0, extracted_feature_dict, extracted_feature_dict_aug, extracted_feature_dict_test, labels_dict_test)
 

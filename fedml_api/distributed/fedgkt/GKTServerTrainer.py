@@ -46,23 +46,20 @@ class GKTServerTrainer(object):
         self.scheduler = ReduceLROnPlateau(self.optimizer, 'max')
 
         self.criterion_CE = nn.CrossEntropyLoss()
-        self.criterion_KL = utils.KL_Loss(self.args.temperature)
+        self.criterion_MI = utils.MutualInformationLoss(self.args.temperature)
         self.best_acc = 0.0
 
         # key: client_index; value: extracted_feature_dict
-        self.client_extracted_feauture_dict = dict()
-
-        # key: client_index; value: logits_dict
-        self.client_logits_dict = dict()
-
-        # key: client_index; value: labels_dict
-        self.client_labels_dict = dict()
+        self.client_extracted_feature_dict = dict()
+        
+        # key: client_index; value: extracted_feature_dict_aug
+        self.client_extracted_feature_dict_aug = dict()
 
         # key: client_index; value: labels_dict
         self.server_logits_dict = dict()
 
         # for test
-        self.client_extracted_feauture_dict_test = dict()
+        self.client_extracted_feature_dict_test = dict()
         self.client_labels_dict_test = dict()
 
         self.model_dict = dict()
@@ -76,13 +73,12 @@ class GKTServerTrainer(object):
         for idx in range(self.client_num):
             self.flag_client_model_uploaded_dict[idx] = False
 
-    def add_local_trained_result(self, index, extracted_feature_dict, logits_dict, labels_dict,
+    def add_local_trained_result(self, index, extracted_feature_dict, extracted_feature_dict_aug,
                                  extracted_feature_dict_test, labels_dict_test):
         logging.info("add_model. index = %d" % index)
-        self.client_extracted_feauture_dict[index] = extracted_feature_dict
-        self.client_logits_dict[index] = logits_dict
-        self.client_labels_dict[index] = labels_dict
-        self.client_extracted_feauture_dict_test[index] = extracted_feature_dict_test
+        self.client_extracted_feature_dict[index] = extracted_feature_dict
+        self.client_extracted_feature_dict_aug[index] = extracted_feature_dict_aug
+        self.client_extracted_feature_dict_test[index] = extracted_feature_dict_test
         self.client_labels_dict_test[index] = labels_dict_test
 
         self.flag_client_model_uploaded_dict[index] = True
@@ -242,29 +238,21 @@ class GKTServerTrainer(object):
         accTop1_avg = utils.RunningAverage()
         accTop5_avg = utils.RunningAverage()
 
-        for client_index in self.client_extracted_feauture_dict.keys():
-            extracted_feature_dict = self.client_extracted_feauture_dict[client_index]
-            logits_dict = self.client_logits_dict[client_index]
-            labels_dict = self.client_labels_dict[client_index]
+        for client_index in self.client_extracted_feature_dict.keys():
+            extracted_feature_dict = self.client_extracted_feature_dict[client_index]
+            extracted_feature_dict_aug = self.client_extracted_feature_dict_aug[client_index]
 
             s_logits_dict = dict()
             self.server_logits_dict[client_index] = s_logits_dict
             for batch_index in extracted_feature_dict.keys():
                 batch_feature_map_x = torch.from_numpy(extracted_feature_dict[batch_index]).to(self.device)
-                batch_logits = torch.from_numpy(logits_dict[batch_index]).float().to(self.device)
-                batch_labels = torch.from_numpy(labels_dict[batch_index]).long().to(self.device)
+                batch_feature_map_x_aug = torch.from_numpy(extracted_feature_dict_aug[batch_index]).to(self.device)
 
                 # logging.info("running: batch_index = %d, client_index = %d" % (batch_index, client_index))
                 output_batch = self.model_global(batch_feature_map_x)
+                output_batch_aug = self.model_global(batch_feature_map_x_aug)
 
-                if self.args.whether_distill_on_the_server == 1:
-                    loss_kd = self.criterion_KL(output_batch, batch_logits).to(self.device)
-                    loss_true = self.criterion_CE(output_batch, batch_labels).to(self.device)
-                    loss = loss_kd + self.args.alpha * loss_true
-                else:
-                    loss_true = self.criterion_CE(output_batch, batch_labels).to(self.device)
-                    loss = loss_true
-
+                loss = self.criterion_MI(output_batch, output_batch_aug)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
@@ -281,7 +269,7 @@ class GKTServerTrainer(object):
                 s_logits_dict[batch_index] = output_batch.cpu().detach().numpy()
 
         # compute mean of all metrics in summary
-        train_metrics = {'train_loss': loss_avg.value(),
+        train_metrics = {'train_loss - Mutual information': loss_avg.value(),
                          'train_accTop1': accTop1_avg.value(),
                          'train_accTop5': accTop5_avg.value()}
 
@@ -297,8 +285,8 @@ class GKTServerTrainer(object):
         accTop1_avg = utils.RunningAverage()
         accTop5_avg = utils.RunningAverage()
         with torch.no_grad():
-            for client_index in self.client_extracted_feauture_dict_test.keys():
-                extracted_feature_dict = self.client_extracted_feauture_dict_test[client_index]
+            for client_index in self.client_extracted_feature_dict_test.keys():
+                extracted_feature_dict = self.client_extracted_feature_dict_test[client_index]
                 labels_dict = self.client_labels_dict_test[client_index]
 
                 for batch_index in extracted_feature_dict.keys():
@@ -316,7 +304,7 @@ class GKTServerTrainer(object):
                     loss_avg.update(loss.item())
 
         # compute mean of all metrics in summary
-        test_metrics = {'test_loss': loss_avg.value(),
+        test_metrics = {'test_loss - Cross Entropy': loss_avg.value(),
                         'test_accTop1': accTop1_avg.value(),
                         'test_accTop5': accTop5_avg.value()}
 
