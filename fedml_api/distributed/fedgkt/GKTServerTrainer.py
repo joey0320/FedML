@@ -114,7 +114,7 @@ class GKTServerTrainer(object):
             if self.args.client_model == "resnet56":
                 epochs_server, whether_distill_back = self.get_server_epoch_strategy_reset56_2(round_idx)
             else:
-                epochs_server = self.args.self.args.epochs_server
+                epochs_server = self.args.epochs_server
 
         # train according to the logits from the client
         self.train_and_eval(round_idx, epochs_server)
