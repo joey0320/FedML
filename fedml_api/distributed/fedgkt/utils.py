@@ -1,5 +1,5 @@
 import json
-
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -94,6 +94,46 @@ class KL_Loss(nn.Module):
         # loss = T * T * torch.sum(torch.sum(torch.mul(teacher_outputs, torch.log(teacher_outputs) - output_batch)))/teacher_outputs.size(0)
         return loss
 
+class MutualInformationLoss(nn.Module):
+    def __init__(self, temperature=1):
+        super(MutualInformationLoss, self).__init__()
+        self.T = temperature
+
+    def _compute_joint(self, logits, logits_aug):
+        b, dim = logits.size()
+        assert(logits_aug.size(0)==b and logits_aug.size(1)==dim)
+
+        pij = logits.unsqueeze(2) * logits_aug.unsqueeze(1) # b, c, c
+        pij = pij.sum(dim=0) # c, c
+        pij = (pij + pij.t()) / 2.
+        pij = pij / pij.sum()
+        return pij
+
+    def forward(self, output_batch, output_batch_aug, lamb=1.0, EPS=sys.float_info.epsilon):
+        # output_batch : b x c
+        # output_batch_aug : b x c
+        b, c = output_batch.size()
+
+        logits = F.log_softmax(output_batch / self.T, dim=1)
+        logits_aug = F.log_softmax(output_batch_aug / self.T, dim=1)
+        pij = self._compute_joint(logits, logits_aug)
+
+        assert(pij.size() == (c, c))
+
+        pi = pij.sum(dim=1).view(c, 1).expand(c, c)
+        pj = pij.sum(dim=0).view(1, c).expand(c, c)
+
+        pij[(pij < EPS).data] = EPS
+        pj[(pj < EPS).data] = EPS
+        pi[(pi < EPS).data] = EPS
+
+        loss = - pij * (torch.log(pij) \
+              - lamb * torch.log(pj) \
+              - lamb * torch.log(pi))
+
+        loss = loss.sum()
+
+        return loss
 
 class CE_Loss(nn.Module):
     def __init__(self, temperature=1):
