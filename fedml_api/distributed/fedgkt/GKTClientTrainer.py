@@ -50,8 +50,8 @@ class GKTClientTrainer(object):
         # key: batch_index; value: extracted_feature_map
         extracted_feature_dict = dict()
 
-        # key: batch_index; value: logits
-        logits_dict = dict()
+        # key: batch_index; value: extracted_feature_map_aug
+        extracted_feature_dict_aug = dict()
 
         # key: batch_index; value: label
         labels_dict = dict()
@@ -121,6 +121,7 @@ class GKTClientTrainer(object):
             extracted_feature_dict[batch_idx] = extracted_features.cpu().detach().numpy()
             extracted_feature_dict_aug[batch_idx] = extracted_features_aug.cpu().detach().numpy()
             log_probs = log_probs.cpu().detach().numpy()
+            labels_dict[batch_idx] = labels.cpu().detach().numpy()
 
         for batch_idx, (images, labels) in enumerate(self.local_test_data):
             test_images, test_labels = images.to(self.device), labels.to(self.device)
@@ -128,4 +129,4 @@ class GKTClientTrainer(object):
             extracted_feature_dict_test[batch_idx] = extracted_features_test.cpu().detach().numpy()
             labels_dict_test[batch_idx] = test_labels.cpu().detach().numpy()
 
-        return extracted_feature_dict, extracted_feature_dict_aug, extracted_feature_dict_test, labels_dict_test
+        return extracted_feature_dict, extracted_feature_dict_aug, labels_dict, extracted_feature_dict_test, labels_dict_test

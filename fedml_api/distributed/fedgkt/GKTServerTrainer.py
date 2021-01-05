@@ -56,6 +56,9 @@ class GKTServerTrainer(object):
         self.client_extracted_feature_dict_aug = dict()
 
         # key: client_index; value: labels_dict
+        self.client_labels_dict = dict()
+
+        # key: server_index; value: labels_dict
         self.server_logits_dict = dict()
 
         # for test
@@ -73,11 +76,12 @@ class GKTServerTrainer(object):
         for idx in range(self.client_num):
             self.flag_client_model_uploaded_dict[idx] = False
 
-    def add_local_trained_result(self, index, extracted_feature_dict, extracted_feature_dict_aug,
+    def add_local_trained_result(self, index, extracted_feature_dict, extracted_feature_dict_aug, labels_dict,
                                  extracted_feature_dict_test, labels_dict_test):
         logging.info("add_model. index = %d" % index)
         self.client_extracted_feature_dict[index] = extracted_feature_dict
         self.client_extracted_feature_dict_aug[index] = extracted_feature_dict_aug
+        self.client_labels_dict[index] = labels_dict
         self.client_extracted_feature_dict_test[index] = extracted_feature_dict_test
         self.client_labels_dict_test[index] = labels_dict_test
 
@@ -241,18 +245,21 @@ class GKTServerTrainer(object):
         for client_index in self.client_extracted_feature_dict.keys():
             extracted_feature_dict = self.client_extracted_feature_dict[client_index]
             extracted_feature_dict_aug = self.client_extracted_feature_dict_aug[client_index]
+            labels_dict = self.client_labels_dict[client_index]
 
             s_logits_dict = dict()
             self.server_logits_dict[client_index] = s_logits_dict
             for batch_index in extracted_feature_dict.keys():
                 batch_feature_map_x = torch.from_numpy(extracted_feature_dict[batch_index]).to(self.device)
                 batch_feature_map_x_aug = torch.from_numpy(extracted_feature_dict_aug[batch_index]).to(self.device)
+                batch_labels = torch.from_numpy(labels_dict[batch_index]).long().to(self.device)
 
                 # logging.info("running: batch_index = %d, client_index = %d" % (batch_index, client_index))
                 output_batch = self.model_global(batch_feature_map_x)
                 output_batch_aug = self.model_global(batch_feature_map_x_aug)
 
-                loss = self.criterion_MI(output_batch, output_batch_aug)
+# loss = self.criterion_MI(output_batch, output_batch_aug)
+                loss = utils.IID_loss(output_batch, output_batch_aug)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()

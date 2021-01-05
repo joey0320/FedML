@@ -30,10 +30,11 @@ class GKTServerMananger(ServerManager):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         extracted_feature_dict = msg_params.get(MyMessage.MSG_ARG_KEY_FEATURE)
         extracted_feature_dict_aug = msg_params.get(MyMessage.MSG_ARG_KEY_FEATURE_AUG)
+        labels_dict = msg_params.get(MyMessage.MSG_ARG_KEY_LABELS)
         extracted_feature_dict_test = msg_params.get(MyMessage.MSG_ARG_KEY_FEATURE_TEST)
         labels_dict_test = msg_params.get(MyMessage.MSG_ARG_KEY_LABELS_TEST)
 
-        self.server_trainer.add_local_trained_result(sender_id - 1, extracted_feature_dict, extracted_feature_dict_aug,
+        self.server_trainer.add_local_trained_result(sender_id - 1, extracted_feature_dict, extracted_feature_dict_aug, labels_dict,
                                                  extracted_feature_dict_test, labels_dict_test)
         b_all_received = self.server_trainer.check_whether_all_receive()
         logging.info("b_all_received = " + str(b_all_received))
