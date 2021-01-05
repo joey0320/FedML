@@ -38,12 +38,13 @@ def default_loader(path):
 
 class CIFAR10_truncated(data.Dataset):
 
-    def __init__(self, root, dataidxs=None, train=True, transform=None, target_transform=None, download=False):
+    def __init__(self, root, dataidxs=None, train=True, transform=None, aug_transform=None, target_transform=None, download=False):
 
         self.root = root
         self.dataidxs = dataidxs
         self.train = train
         self.transform = transform
+        self.aug_transform = aug_transform
         self.target_transform = target_transform
         self.download = download
 
@@ -82,15 +83,25 @@ class CIFAR10_truncated(data.Dataset):
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        img, target = self.data[index], self.target[index]
-
-        if self.transform is not None:
-            img = self.transform(img)
+        raw_img, target = self.data[index], self.target[index]
 
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        return img, target
+        if self.transform is not None:
+            img = self.transform(raw_img)
+            if self.aug_transform is not None:
+                aug_img = self.aug_transform(raw_img)
+                return img, aug_img, target
+            else:
+                return img, target
+        else:
+            img = raw_img
+            if self.aug_transform is not None:
+                aug_img = self.aug_transform(raw_img)
+                return img, aug_img, target
+            else:
+                return img, target
 
     def __len__(self):
         return len(self.data)

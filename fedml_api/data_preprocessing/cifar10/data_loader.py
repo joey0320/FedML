@@ -98,29 +98,31 @@ def _data_transforms_cifar10():
     train_transform.transforms.append(Cutout(16))
 
     aug_transform = transforms.Compose([
-        transforms.RandomResizedCrop((22,22)),
+        transforms.ToPILImage(),
+        transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.RandomApply([
-            transforms.ColorJitter(brightness=(0.2, 3),
-                                    contrast=(0.4, 1.5),
-                                    saturation=(0.2, 1.5),
-                                    hue=(-0.2, 0.2))
-            ], p=0.2),
-        transforms.RandomGrayscale(p=0.5),
+            transforms.ColorJitter(brightness=0.4,
+            contrast=0.4,
+            saturation=0.4,
+            hue=0.1)
+        ], p=0.5),
+        transforms.RandomGrayscale(p=0.2),
         transforms.ToTensor(),
         transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
     ])
+    aug_transform.transforms.append(Cutout(16))
 
     valid_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
     ])
 
-    return PairTransform(train_transform, aug_transform), valid_transform
+    return train_transform, aug_transform, valid_transform
 
 
 def load_cifar10_data(datadir):
-    train_transform, test_transform = _data_transforms_cifar10()
+    train_transform, aug_transform, test_transform = _data_transforms_cifar10()
 
     cifar10_train_ds = CIFAR10_truncated(datadir, train=True, download=True, transform=train_transform)
     cifar10_test_ds = CIFAR10_truncated(datadir, train=False, download=True, transform=test_transform)
@@ -194,9 +196,9 @@ def get_dataloader_test(dataset, datadir, train_bs, test_bs, dataidxs_train, dat
 def get_dataloader_CIFAR10(datadir, train_bs, test_bs, dataidxs=None):
     dl_obj = CIFAR10_truncated
 
-    transform_train, transform_test = _data_transforms_cifar10()
+    transform_train, transform_aug, transform_test = _data_transforms_cifar10()
 
-    train_ds = dl_obj(datadir, dataidxs=dataidxs, train=True, transform=transform_train, download=True)
+    train_ds = dl_obj(datadir, dataidxs=dataidxs, train=True, transform=transform_train, aug_transform=transform_aug, download=True)
     test_ds = dl_obj(datadir, train=False, transform=transform_test, download=True)
 
     train_dl = data.DataLoader(dataset=train_ds, batch_size=train_bs, shuffle=True, drop_last=True)
@@ -208,7 +210,7 @@ def get_dataloader_CIFAR10(datadir, train_bs, test_bs, dataidxs=None):
 def get_dataloader_test_CIFAR10(datadir, train_bs, test_bs, dataidxs_train=None, dataidxs_test=None):
     dl_obj = CIFAR10_truncated
 
-    transform_train, transform_test = _data_transforms_cifar10()
+    transform_train, transform_aug, transform_test = _data_transforms_cifar10()
 
     train_ds = dl_obj(datadir, dataidxs=dataidxs_train, train=True, transform=transform_train, download=True)
     test_ds = dl_obj(datadir, dataidxs=dataidxs_test, train=False, transform=transform_test, download=True)
