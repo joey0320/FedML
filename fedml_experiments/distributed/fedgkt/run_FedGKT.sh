@@ -48,5 +48,3 @@ mpirun -np 9 -hostfile ./mpi_host_file python3 ./main_fedgkt.py \
 --whether_training_on_client $TRAIN_OR_NOT \
 --whether_distill_on_the_server $DISTILL_ON_SERVER \
 --running_name $NAME \
---multi_gpu_server 0
-
