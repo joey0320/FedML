@@ -17,6 +17,7 @@ class MyMessage(object):
         message payload keywords definition
     """
     MSG_ARG_KEY_FEATURE = "feature"
+    MSG_ARG_KEY_FEATURE_AUG = "feature_aug"
     MSG_ARG_KEY_LOGITS = "logits"
     MSG_ARG_KEY_LABELS = "labels"
     MSG_ARG_KEY_FEATURE_TEST = "feature_test"

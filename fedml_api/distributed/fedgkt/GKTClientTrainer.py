@@ -49,6 +49,7 @@ class GKTClientTrainer(object):
     def train(self):
         # key: batch_index; value: extracted_feature_map
         extracted_feature_dict = dict()
+        extracted_feature_dict_aug = dict()
 
         # key: batch_index; value: logits
         logits_dict = dict()
@@ -66,8 +67,8 @@ class GKTClientTrainer(object):
             epoch_loss = []
             for epoch in range(self.args.epochs_client):
                 batch_loss = []
-                for batch_idx, (images, labels) in enumerate(self.local_training_data):
-                    images, labels = images.to(self.device), labels.to(self.device)
+                for batch_idx, (images, images_aug, labels) in enumerate(self.local_training_data):
+                    images, images_aug, labels = images.to(self.device), images_aug.to(self.device), labels.to(self.device)
                     # logging.info("shape = " + str(images.shape))
                     log_probs, _ = self.client_model(images)
                     loss_true = self.criterion_CE(log_probs, labels)
@@ -105,17 +106,19 @@ class GKTClientTrainer(object):
             So it is better to run this program in a 256G CPU host memory. 
             If deploying our algorithm in real world system, please optimize the memory usage by compression.
         """
-        for batch_idx, (images, labels) in enumerate(self.local_training_data):
-            images, labels = images.to(self.device), labels.to(self.device)
+        for batch_idx, (images, images_aug, labels) in enumerate(self.local_training_data):
+            images, images_aug, labels = images.to(self.device), images_aug.to(self.device), labels.to(self.device)
 
             # logging.info("shape = " + str(images.shape))
             log_probs, extracted_features = self.client_model(images)
+            log_probs_aug, extracted_features_aug = self.client_model(images_aug)
 
             # logging.info("shape = " + str(extracted_features.shape))
             # logging.info("element size = " + str(extracted_features.element_size()))
             # logging.info("nelement = " + str(extracted_features.nelement()))
             # logging.info("GPU memory1 = " + str(extracted_features.nelement() * extracted_features.element_size()))
             extracted_feature_dict[batch_idx] = extracted_features.cpu().detach().numpy()
+            extracted_feature_dict_aug[batch_idx] = extracted_features_aug.cpu().detach().numpy()
             log_probs = log_probs.cpu().detach().numpy()
             logits_dict[batch_idx] = log_probs
             labels_dict[batch_idx] = labels.cpu().detach().numpy()
@@ -126,4 +129,4 @@ class GKTClientTrainer(object):
             extracted_feature_dict_test[batch_idx] = extracted_features_test.cpu().detach().numpy()
             labels_dict_test[batch_idx] = test_labels.cpu().detach().numpy()
 
-        return extracted_feature_dict, logits_dict, labels_dict, extracted_feature_dict_test, labels_dict_test
+        return extracted_feature_dict, extracted_feature_dict_aug, logits_dict, labels_dict, extracted_feature_dict_test, labels_dict_test
