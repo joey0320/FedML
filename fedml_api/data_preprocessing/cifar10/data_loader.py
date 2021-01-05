@@ -75,6 +75,14 @@ class Cutout(object):
         img *= mask
         return img
 
+class PairTransform():
+    """create pair of transformed images"""
+    def __init__(self, norm_transform, aug_transform):
+        self.norm_transform = norm_transform
+        self.aug_transform = aug_transform
+
+    def __call__(self, x):
+        return self.norm_transform(x), self.aug_transform(x)
 
 def _data_transforms_cifar10():
     CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
@@ -87,15 +95,28 @@ def _data_transforms_cifar10():
         transforms.ToTensor(),
         transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
     ])
-
     train_transform.transforms.append(Cutout(16))
+
+    aug_transform = transforms.Compose([
+        transforms.RandomResizedCrop((22,22)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomApply([
+            transforms.ColorJitter(brightness=(0.2, 3),
+                                    contrast=(0.4, 1.5),
+                                    saturation=(0.2, 1.5),
+                                    hue=(-0.2, 0.2))
+            ], p=0.2),
+        transforms.RandomGrayscale(p=0.5),
+        transforms.ToTensor(),
+        transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
+    ])
 
     valid_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
     ])
 
-    return train_transform, valid_transform
+    return PairTransform(train_transform, aug_transform), valid_transform
 
 
 def load_cifar10_data(datadir):
