@@ -241,6 +241,8 @@ class GKTServerTrainer(object):
         loss_avg = utils.RunningAverage()
         accTop1_avg = utils.RunningAverage()
         accTop5_avg = utils.RunningAverage()
+        
+        print_cnt = 0
 
         for client_index in self.client_extracted_feature_dict.keys():
             extracted_feature_dict = self.client_extracted_feature_dict[client_index]
@@ -274,6 +276,12 @@ class GKTServerTrainer(object):
                 # Note that this must be running in the model.train() model,
                 # since the client will continue the iteration based on the server logits.
                 s_logits_dict[batch_index] = output_batch.cpu().detach().numpy()
+                
+                if print_cnt == 0:
+                    print('[*] loss calculation and backprop complete')
+                    print_cnt += 1
+            
+            print(f'[*] training on client {client_index} extracted features finished')
 
         # compute mean of all metrics in summary
         train_metrics = {'train_loss - Mutual information': loss_avg.value(),
