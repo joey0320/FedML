@@ -40,6 +40,7 @@ class GKTServerMananger(ServerManager):
         logging.info("b_all_received = " + str(b_all_received))
         if b_all_received:
             self.server_trainer.train(self.round_idx)
+            logging.info("server training complete")
 
             # start the next round
             self.round_idx += 1
@@ -49,6 +50,7 @@ class GKTServerMananger(ServerManager):
 
             for receiver_id in range(1, self.size):
                 global_logits = self.server_trainer.get_global_logits(receiver_id-1)
+                logging.info("sending message to client : " + str(receiver_id))
                 self.send_message_sync_model_to_client(receiver_id, global_logits)
 
     def send_message_init_config(self, receive_id, global_model_params):

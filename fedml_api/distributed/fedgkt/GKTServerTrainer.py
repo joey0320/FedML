@@ -260,8 +260,8 @@ class GKTServerTrainer(object):
                 output_batch = self.model_global(batch_feature_map_x)
                 output_batch_aug = self.model_global(batch_feature_map_x_aug)
 
-# loss = self.criterion_MI(output_batch, output_batch_aug)
-                loss = utils.IID_loss(output_batch, output_batch_aug)
+                loss = self.criterion_MI(output_batch, output_batch_aug)
+# loss = utils.IID_loss(output_batch, output_batch_aug)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
@@ -284,7 +284,7 @@ class GKTServerTrainer(object):
             print(f'[*] training on client {client_index} extracted features finished')
 
         # compute mean of all metrics in summary
-        train_metrics = {'train_loss - Mutual information': loss_avg.value(),
+        train_metrics = {'train_loss': loss_avg.value(),
                          'train_accTop1': accTop1_avg.value(),
                          'train_accTop5': accTop5_avg.value()}
 
@@ -319,7 +319,7 @@ class GKTServerTrainer(object):
                     loss_avg.update(loss.item())
 
         # compute mean of all metrics in summary
-        test_metrics = {'test_loss - Cross Entropy': loss_avg.value(),
+        test_metrics = {'test_loss': loss_avg.value(),
                         'test_accTop1': accTop1_avg.value(),
                         'test_accTop5': accTop5_avg.value()}
 

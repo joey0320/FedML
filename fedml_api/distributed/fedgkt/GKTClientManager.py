@@ -49,6 +49,6 @@ class GKTClientMananger(ClientManager):
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
         extracted_feature_dict, extracted_feature_dict_aug, labels_dict, extracted_feature_dict_test, labels_dict_test = self.trainer.train()
-        logging.info("#################finish training##############################")
         self.send_model_to_server(0, extracted_feature_dict, extracted_feature_dict_aug, labels_dict, extracted_feature_dict_test, labels_dict_test)
+        logging.info("################# client : finished train & message sent to server ##############################")
 

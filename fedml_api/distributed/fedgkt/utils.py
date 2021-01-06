@@ -154,8 +154,8 @@ class MutualInformationLoss(nn.Module):
 
         assert(pij.size() == (c, c))
 
-        pi = pij.sum(dim=1).view(c, 1).expand(c, c)
-        pj = pij.sum(dim=0).view(1, c).expand(c, c)
+        pi = pij.sum(dim=1).view(c, 1).expand(c, c).clone()
+        pj = pij.sum(dim=0).view(1, c).expand(c, c).clone()
 
         pij[(pij < EPS).data] = EPS
         pj[(pj < EPS).data] = EPS

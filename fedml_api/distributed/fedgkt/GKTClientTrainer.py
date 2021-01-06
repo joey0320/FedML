@@ -84,12 +84,14 @@ class GKTClientTrainer(object):
                     self.optimizer.zero_grad()
                     loss.backward()
                     self.optimizer.step()
-
+                    
                     logging.info('client {} - Update Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                         self.client_index, epoch, batch_idx * len(images), len(self.local_training_data.dataset),
                                                   100. * batch_idx / len(self.local_training_data), loss.item()))
                     batch_loss.append(loss.item())
                 epoch_loss.append(sum(batch_loss) / len(batch_loss))
+        
+        logging.info("client train on local data complete")
 
         self.client_model.eval()
 
@@ -107,6 +109,8 @@ class GKTClientTrainer(object):
             So it is better to run this program in a 256G CPU host memory. 
             If deploying our algorithm in real world system, please optimize the memory usage by compression.
         """
+
+        logging.info("iterating over train data to extract features")
         for batch_idx, (image, images_aug, labels) in enumerate(self.local_training_data):
             images, images_aug, labels = images.to(self.device), images_aug.to(self.device), labels.to(self.device)
 
@@ -123,10 +127,11 @@ class GKTClientTrainer(object):
             log_probs = log_probs.cpu().detach().numpy()
             labels_dict[batch_idx] = labels.cpu().detach().numpy()
 
+        logging.info("iterating over test data to extract test logits and labels")
         for batch_idx, (images, labels) in enumerate(self.local_test_data):
             test_images, test_labels = images.to(self.device), labels.to(self.device)
             _, extracted_features_test = self.client_model(test_images)
             extracted_feature_dict_test[batch_idx] = extracted_features_test.cpu().detach().numpy()
             labels_dict_test[batch_idx] = test_labels.cpu().detach().numpy()
-
+        logging.info("client train complete - ready to send message")
         return extracted_feature_dict, extracted_feature_dict_aug, labels_dict, extracted_feature_dict_test, labels_dict_test

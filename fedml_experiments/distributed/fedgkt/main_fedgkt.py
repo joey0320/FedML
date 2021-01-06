@@ -84,7 +84,7 @@ def add_args(parser):
                         help='how many epochs will be trained on the server side')
     parser.add_argument('--alpha', default=1.0, type=float, help='Input the relative weight: default(1.0)')
     parser.add_argument('--optimizer', default="SGD", type=str, help='optimizer: SGD, Adam, etc.')
-    parser.add_argument('--whether_training_on_client', default=1, type=int)
+    parser.add_argument('--whether_training_on_client', default=0, type=int)
     parser.add_argument('--whether_distill_on_the_server', default=0, type=int)
     parser.add_argument('--client_model', default="resnet4", type=str)
     parser.add_argument('--weight_init_model', default="resnet32", type=str)
@@ -134,8 +134,8 @@ def create_client_model(args, n_classes):
     else:
         resumePath = "./../../../fedml_api/model/cv/pretrained/CIFAR10/resnet56/best.pth"
     pretrained_model = resnet56_pretrained(n_classes, pretrained=True, path=resumePath)
-    logging.info("########pretrained model#################")
-    logging.info(pretrained_model)
+# logging.info("########pretrained model#################")
+# logging.info(pretrained_model)
 
     # copy pretrained parameters to client models
     params_featrue_extractor = dict()
@@ -146,7 +146,7 @@ def create_client_model(args, n_classes):
 
     client_model = resnet8_56(n_classes)
 
-    logging.info("pretrained:")
+# logging.info("pretrained:")
     for name, param in client_model.named_parameters():
         if name.startswith("conv1"):
             param.data = params_featrue_extractor[name]
@@ -160,7 +160,8 @@ def create_client_model(args, n_classes):
             param.data = params_featrue_extractor[name]
             if args.whether_training_on_client == 0:
                 param.requires_grad = False
-    logging.info(client_model)
+# logging.info(client_model)
+    logging.info("model load complete")
     return client_model
 
 
